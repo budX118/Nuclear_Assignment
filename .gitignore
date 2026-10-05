@@ -2,3 +2,4 @@
 __pycache__/
 *_ckpt.npz
 *.log
+*.zip

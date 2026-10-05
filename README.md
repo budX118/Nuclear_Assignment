@@ -62,3 +62,41 @@ python validate_physics.py                              # seconds: data / sampli
    D₂O where a neutron makes ~500 thermal collisions.)
 
 `k_inf = (1/N) Σ ν_i`, `σ_k = √((⟨ν²⟩−k²)/N)`.  "Can go critical" ⇔ `k_inf − 3σ > 1`.
+
+## Results (this code, library `full`, 293.6 K)
+
+| # | Medium | k_inf, 10^6 neutrons | k_inf, 10^9 neutrons | Can go critical? |
+|---|--------|----------------------|----------------------|------------------|
+| 1 | pure U-238 | 0.23772 ± 0.00078 | 0.23784 ± 0.00002 | no |
+| 2 | natural U | 0.33034 ± 0.00088 | 0.33072 ± 0.00003 | no |
+| 3 | 2 wt% U + H2O (3.4 H2O per U atom) | 1.24884 ± 0.00123 | 1.24717 ± 0.00004 | **yes** |
+| 4 | natural U + D2O (300 D2O per U atom) | 1.18442 ± 0.00122 | 1.18674 ± 0.00004 | **yes** |
+
+* 10^6 and 10^9 agree within 0.2–1.4 σ(10^6) – same model, only the statistics improve (σ falls as N^-1/2).
+* Checks that pass (see `analysis/summary.md`): mean birth energy 1.9334 vs 1.9330 MeV; thermal lifetime = 1/<vΣa> to 4 digits;
+  f and η equal their thermal-cross-section values; collisions to thermalise 18.5 (H2O) and 29.9 (D2O) vs 18.7 / 29.0 predicted;
+  U-235 thermal σf/σγ 5.96 / 5.91 vs 5.93; **the deterministic collision-density solver reproduces all four k_inf within 7e-5**.
+* Moderator scans (`analysis/fig14`): 2% U + H2O peaks at ≈1.25 near 3.4 H2O/U and is >1 from ≈0.6 to ≈15; natural U + D2O peaks at ≈1.19
+  near 300–350 D2O/U; natural U + H2O never exceeds 0.90 (needs enrichment); unmoderated uranium needs ≈8–10 wt% U-235.
+* At 10^9 a handful of neutrons in cases 1–2 do reach thermal energy (rare events; p ≈ 1e-9) – their lifetime/slowing-down columns in
+  `summary.md` are therefore statistically meaningless.
+
+### Comparison with the two reference reports (k_inf)
+
+| Case | this code (10^9) | MATLAB report CH23B025/043 (10^9) | GitHub report CH23B086/036 (10^9) |
+|------|------------------|------------------------------------|-----------------------------------|
+| 1 | 0.23784 | 0.30202 | 0.22992 |
+| 2 | 0.33072 | 0.40556 | 0.33816 |
+| 3 | 1.24717 | 1.21885 | 1.27030 |
+| 4 | 1.18674 | 1.14017 | 1.21403 |
+
+All three agree on the four yes/no answers; differences come from the nuclear data (this code: built-in library, see below; MATLAB report: NJOY-processed
+pointwise data; GitHub report: hand-made 50-point table + 9 Breit–Wigner resonances), the inelastic-scattering model and the thermal treatment.
+
+### Data caveat (important for the report)
+
+The KAERI / IAEA / NNDC servers were not reachable while this was written, so `xs_data.py` builds its own library: ENDF thermal constants,
+smooth fast-energy anchors taken from the reference reports' appendix tables, and a Doppler-broadened U-238 resonance ladder (RI = 279 b vs ≈275 b).
+If you can download the real KAERI/ENDF curves, put them in `U235.csv U238.csv H1.csv H2.csv O16.csv`
+(columns `E_MeV, elastic, inelastic, capture, fission`) and run `python mc_reactor.py --xs-dir <folder> ...`.
+Using only the 50-point table (`--coarse`) changes k_inf a lot (cases 3/4: 1.41 / 1.28) because the narrow U-238 resonances are missed.
